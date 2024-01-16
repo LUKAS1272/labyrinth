@@ -37,6 +37,14 @@ path* CreatePath(int yIndex, int xIndex) {
 }
 
 
+// Neighbor parsing
+void addNeighbor(node **target, int neighborY, int neighborX) {
+    node *temp = *target;
+    (*target) = CreateNode(neighborY, neighborX);
+    (*target)->next = temp;
+}
+
+
 int main() {
     char currentChar;
     char **field;
@@ -76,29 +84,29 @@ int main() {
             neighborsField[yAxis][xAxis] = NULL;
 
             if (field[yAxis][xAxis] == '.') {
-                if (field[yAxis - 1][xAxis] == '.') { // Is path on the top
-                    node *temp = neighborsField[yAxis][xAxis];
-                    neighborsField[yAxis][xAxis] = CreateNode(yAxis - 1, xAxis);
-                    neighborsField[yAxis][xAxis]->next = temp;
-                }
+                // Is path on the top
+                if (yAxis == 0 && field[yLen - 1][xAxis] == '.')
+                    addNeighbor(&neighborsField[yAxis][xAxis], yLen - 1, xAxis);
+                else if (yAxis > 0 && field[yAxis - 1][xAxis] == '.')
+                    addNeighbor(&neighborsField[yAxis][xAxis], yAxis - 1, xAxis);
 
-                if (field[yAxis][xAxis + 1] == '.') { // Is path on the right
-                    node *temp = neighborsField[yAxis][xAxis];
-                    neighborsField[yAxis][xAxis] = CreateNode(yAxis, xAxis + 1);
-                    neighborsField[yAxis][xAxis]->next = temp;
-                }
+                // Is path on the right
+                if (xAxis == xLen - 1 && field[yAxis][0] == '.')
+                    addNeighbor(&neighborsField[yAxis][xAxis], yAxis, 0);
+                else if (xAxis < xLen - 1 && field[yAxis][xAxis + 1] == '.')
+                    addNeighbor(&neighborsField[yAxis][xAxis], yAxis, xAxis + 1);
 
-                if (field[yAxis + 1][xAxis] == '.') { // Is path on the bottom
-                    node *temp = neighborsField[yAxis][xAxis];
-                    neighborsField[yAxis][xAxis] = CreateNode(yAxis + 1, xAxis);
-                    neighborsField[yAxis][xAxis]->next = temp;
-                }
+                // Is path on the bottom
+                if (yAxis == yLen - 1 && field[yLen - 1][xAxis] == '.')
+                    addNeighbor(&neighborsField[yAxis][xAxis], 0, xAxis);
+                else if (yAxis < yLen - 1 && field[yAxis + 1][xAxis] == '.')
+                    addNeighbor(&neighborsField[yAxis][xAxis], yAxis + 1, xAxis);
 
-                if (field[yAxis][xAxis - 1] == '.') { // Is path on the left
-                    node *temp = neighborsField[yAxis][xAxis];
-                    neighborsField[yAxis][xAxis] = CreateNode(yAxis, xAxis - 1);
-                    neighborsField[yAxis][xAxis]->next = temp;
-                }
+                // Is path on the left
+                if (xAxis == 0 && field[yAxis][xLen - 1] == '.')
+                    addNeighbor(&neighborsField[yAxis][xAxis], yAxis, xLen - 1);
+                else if (field[yAxis][xAxis - 1] == '.')
+                    addNeighbor(&neighborsField[yAxis][xAxis], yAxis, xAxis - 1);
             }
         }
     }
