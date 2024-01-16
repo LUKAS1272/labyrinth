@@ -23,7 +23,6 @@ node* CreateNode(int yIndex, int xIndex) {
 typedef struct path {
     int y;
     int x;
-    int shortestPath;
     struct path* from;
 } path;
 
@@ -32,7 +31,6 @@ path* CreatePath(int yIndex, int xIndex) {
 
     result->y = yIndex;
     result->x = xIndex;
-    // result->shortestPath = -1;
     result->from = NULL;
 
     return result;
@@ -68,55 +66,41 @@ int main() {
     free(field[yIndex]); // Frees last allocated row - is not needed
     field = realloc(field, (yLen = yIndex) * sizeof(char **)); // Retrieves only needed rows
 
-    node *linkedListField[yLen][xLen];
+    // Creates field with linked list of neighbors for each tile
+    node ***neighborsField = malloc(yLen * sizeof(node ***));
+    for (int y = 0; y < yLen; y++) { neighborsField[y] = malloc(xLen * sizeof(node **)); }
 
     // Parsing 2D array
     for (int yAxis = 0; yAxis < yLen; yAxis++) {
-    // for (int yAxis = 0; yAxis < 1; yAxis++) {
         for (int xAxis = 0; xAxis < xLen; xAxis++) {
-            linkedListField[yAxis][xAxis] = NULL;
+            neighborsField[yAxis][xAxis] = NULL;
 
-            // if (yAxis != 0 && yAxis != yLen - 1 && xAxis != 0 && xAxis != xLen - 1) { // If element is not on the sides
             if (field[yAxis][xAxis] == '.') {
-                // printf("A\n");
                 if (field[yAxis - 1][xAxis] == '.') { // Is path on the top
-                    // printf("Top\n");
-                    node *temp = linkedListField[yAxis][xAxis];
-                    linkedListField[yAxis][xAxis] = CreateNode(yAxis - 1, xAxis);
-                    linkedListField[yAxis][xAxis]->next = temp;
+                    node *temp = neighborsField[yAxis][xAxis];
+                    neighborsField[yAxis][xAxis] = CreateNode(yAxis - 1, xAxis);
+                    neighborsField[yAxis][xAxis]->next = temp;
                 }
 
                 if (field[yAxis][xAxis + 1] == '.') { // Is path on the right
-                    // printf("Right\n");
-                    node *temp = linkedListField[yAxis][xAxis];
-                    linkedListField[yAxis][xAxis] = CreateNode(yAxis, xAxis + 1);
-                    linkedListField[yAxis][xAxis]->next = temp;
+                    node *temp = neighborsField[yAxis][xAxis];
+                    neighborsField[yAxis][xAxis] = CreateNode(yAxis, xAxis + 1);
+                    neighborsField[yAxis][xAxis]->next = temp;
                 }
 
                 if (field[yAxis + 1][xAxis] == '.') { // Is path on the bottom
-                    // printf("Bottom\n");
-                    node *temp = linkedListField[yAxis][xAxis];
-                    linkedListField[yAxis][xAxis] = CreateNode(yAxis + 1, xAxis);
-                    linkedListField[yAxis][xAxis]->next = temp;
+                    node *temp = neighborsField[yAxis][xAxis];
+                    neighborsField[yAxis][xAxis] = CreateNode(yAxis + 1, xAxis);
+                    neighborsField[yAxis][xAxis]->next = temp;
                 }
 
                 if (field[yAxis][xAxis - 1] == '.') { // Is path on the left
-                    // printf("Left\n");
-                    node *temp = linkedListField[yAxis][xAxis];
-                    linkedListField[yAxis][xAxis] = CreateNode(yAxis, xAxis - 1);
-                    linkedListField[yAxis][xAxis]->next = temp;
+                    node *temp = neighborsField[yAxis][xAxis];
+                    neighborsField[yAxis][xAxis] = CreateNode(yAxis, xAxis - 1);
+                    neighborsField[yAxis][xAxis]->next = temp;
                 }
-                // printf("B\n");
-            } else {
-                // printf("Border\n");
-            }
-
-            if (linkedListField[yAxis][xAxis] == NULL) {
-                linkedListField[yAxis][xAxis] = CreateNode(-1, -1);
             }
         }
-
-        // printf("\n");
     }
 
 
@@ -125,15 +109,20 @@ int main() {
     while (scanf("%d %d %d %d", &yCordStart, &xCordStart, &yCordEnd, &xCordEnd) != EOF) {
         if (field[yCordStart][xCordStart] == '#' || field[yCordEnd][xCordEnd] == '#') { // Coordinates do not exist - invalid path
             printf("-1\n");
-        } else if (yCordStart == yCordEnd && xCordStart == xCordEnd) { // Coordinates are the same
+        } else if (yCordStart == yCordEnd && xCordStart == xCordEnd) { // Coordinates are the same - no need to move
             printf("0\n");
         } else {
             // Creates a queue
-            node *queue = CreateNode(yCordStart, xCordStart);
-            node *queueTail = queue;
+            node *queueHead = CreateNode(yCordStart, xCordStart);
+            node *queueTail = queueHead;
 
-            int visited[yLen][xLen]; // Creates a 2D array to check whether the vertex has been already processed
-            path *paths[yLen][xLen]; // Creates a 2D array with paths
+            int **visited = malloc(yLen * sizeof(int **)); // Creates a 2D array to check whether the vertex has been already processed
+            path ***paths = malloc(yLen * sizeof(path ***)); // Creates a 2D array with paths
+
+            for (int y = 0; y < yLen; y++) {
+                visited[y] = malloc(xLen * sizeof(int *));
+                paths[y] = malloc(xLen * sizeof(path **));
+            }
 
             // Initializes default values to prevent access errors
             for (int y = 0; y < yLen; y++) {
@@ -143,35 +132,29 @@ int main() {
                 }
             }
 
-            // int pathsCreated = 1;
-            // printf("Create path %d\n", pathsCreated);
             paths[yCordStart][xCordStart] = CreatePath(yCordStart, xCordStart); // Creates starting tile path
             visited[yCordStart][xCordStart] = 1;
 
-
-            while (queue) { // While there are items in queue
-                node *currentNeighbor = linkedListField[queue->y][queue->x];
+            while (queueHead) { // While there are items in queue
+                node *currentNeighbor = neighborsField[queueHead->y][queueHead->x];
 
                 while (currentNeighbor) { // While there are more neighbors
                     // Enqueue
                     if (visited[currentNeighbor->y][currentNeighbor->x] != 1) { // If the tile hasn't been visited yet
-                        // printf("neighbor [%d, %d] of [%d, %d]\n", currentNeighbor->y, currentNeighbor->x, queue->y, queue->x);
                         queueTail->next = CreateNode(currentNeighbor->y, currentNeighbor->x);
                         queueTail = queueTail->next;
                         visited[currentNeighbor->y][currentNeighbor->x] = 1; // To prevent double pathing
 
-                        // pathsCreated++;
-                        // printf("Create path %d - [%d, %d]\n", pathsCreated, currentNeighbor->y, currentNeighbor->x);
                         paths[currentNeighbor->y][currentNeighbor->x] = CreatePath(currentNeighbor->y, currentNeighbor->x);
-                        paths[currentNeighbor->y][currentNeighbor->x]->from = paths[queue->y][queue->x];
+                        paths[currentNeighbor->y][currentNeighbor->x]->from = paths[queueHead->y][queueHead->x];
                     }
 
                     currentNeighbor = currentNeighbor->next; // Passes to the next neighbor
                 }
                 
                 // Dequeue
-                node *temp = queue;
-                queue = queue->next;
+                node *temp = queueHead;
+                queueHead = queueHead->next;
                 free(temp);
             }
 
@@ -184,7 +167,6 @@ int main() {
                 distance++;
             }
 
-            // printf("The distance is: %d\n", distance);
             printf("%d\n", distance);
 
             // Frees the path
@@ -194,7 +176,13 @@ int main() {
                         free(paths[y][x]);
                     }
                 }
+
+                if (visited[y]) { free(visited[y]); }
+                if (paths[y]) { free(paths[y]); }
             }
+
+            if (paths) { free(paths); }
+            if (visited) { free(visited); }
         }
     }
 
@@ -207,21 +195,24 @@ int main() {
     // Node field free
     for (int yAxis = 0; yAxis < yLen; yAxis++) {
         for (int xAxis = 0; xAxis < xLen; xAxis++) {
-            node *currentNode = linkedListField[yAxis][xAxis];
+            if (!neighborsField[yAxis][xAxis]) { continue; }
+
+            node *currentNode = neighborsField[yAxis][xAxis];
             node *temp;
 
-            while (currentNode->next != NULL) {
+            while (currentNode->next) {
                 temp = currentNode;
-                // printf("freed node [%d, %d] from [%d, %d]\n", temp->y, temp->x, currentNode->y, currentNode->x);
                 currentNode = currentNode->next;
                 free(temp);
             }
-            free(currentNode);
-            // printf("\n");
 
-            // free(linkedListField[yAxis][xAxis]);
+            free(currentNode);
         }
+
+        free(neighborsField[yAxis]);
     }
+
+    free(neighborsField);
 
     return 0;
 }
