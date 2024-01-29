@@ -172,7 +172,6 @@ int main() {
             path ***paths = malloc(yLen * sizeof(path ***)); // Creates a 2D array with paths
 
             // Initializes default values to prevent access errors
-            for (int i = 0; i < queueAlloced; i++) { heapQueue[i] = NULL; }
             for (int y = 0; y < yLen; y++) {
                 visited[y] = malloc(xLen * sizeof(int *));
                 paths[y] = malloc(xLen * sizeof(path **));
@@ -184,7 +183,7 @@ int main() {
             }
 
             paths[yCordStart][xCordStart] = CreatePath(yCordStart, xCordStart); // Creates starting tile path
-            paths[yCordStart][xCordStart]->shortestDistance = 0; // Creates starting tile path
+            paths[yCordStart][xCordStart]->shortestDistance = 0;
             visited[yCordStart][xCordStart] = 1; // Sets starting cord to visited, so it doesn't get staged by queue
             heapQueue[0] = CreateQueue(yCordStart, xCordStart, 0);
 
@@ -193,23 +192,23 @@ int main() {
                 node *currentNeighbor = neighborsField[heapQueue[0]->y][heapQueue[0]->x];
                 
                 while (currentNeighbor) { // While there are more neighbors
-                    // Enqueue
                     if (visited[currentNeighbor->y][currentNeighbor->x] != 1) { // If the tile hasn't been visited / enqueued yet
                         if (queueLength >= queueAlloced) { // Doubles the memory allocated to the binary heap, if needed
                             queueAlloced *= 2;
                             heapQueue = realloc(heapQueue, queueAlloced * sizeof(queue *));
                         }
 
+                        // Enqueues and sets as visited
                         heapQueue[queueLength] = CreateQueue(currentNeighbor->y, currentNeighbor->x, currentNeighbor->distance);
                         visited[currentNeighbor->y][currentNeighbor->x] = 1;
-
-                        // Bubbles up to prevent value violations
-                        int currentIndex = queueLength;
-                        int currentParent = (currentIndex + 1) / 2;
 
                         // If the path doesn't exist, create it
                         if (!paths[currentNeighbor->y][currentNeighbor->x])
                             paths[currentNeighbor->y][currentNeighbor->x] = CreatePath(currentNeighbor->y, currentNeighbor->x);
+                        
+                        // Bubbles up to prevent min heap value violations
+                        int currentIndex = queueLength;
+                        int currentParent = (currentIndex + 1) / 2;
                         while (currentParent >= 0 && paths[heapQueue[currentParent]->y][heapQueue[currentParent]->x]->shortestDistance > paths[heapQueue[currentIndex]->y][heapQueue[currentIndex]->x]->shortestDistance) {
                             queue *temp = heapQueue[currentParent];
                             heapQueue[currentParent] = heapQueue[currentIndex];
@@ -231,6 +230,14 @@ int main() {
 
                     currentNeighbor = currentNeighbor->next; // Passes to the next neighbor
                 }
+
+                if (heapQueue[0]->y == yCordEnd && heapQueue[0]->x == xCordEnd) {
+                    for (int index = 0; index < queueLength; index++) {
+                        free(heapQueue[index]);
+                    }
+
+                    break;
+                }
                 
                 // Swaps first node with last one
                 queue *temp = heapQueue[0];
@@ -243,7 +250,6 @@ int main() {
 
                 // Bubble down
                 int currentIndex = 0, leftChild = 1, rightChild = 2;
-                // add checking whether the nodes exist before looking for its value
                 while (leftChild < queueLength && paths[heapQueue[currentIndex]->y][heapQueue[currentIndex]->x]->shortestDistance > paths[heapQueue[leftChild]->y][heapQueue[leftChild]->x]->shortestDistance || rightChild < queueLength && paths[heapQueue[currentIndex]->y][heapQueue[currentIndex]->x]->shortestDistance > paths[heapQueue[rightChild]->y][heapQueue[rightChild]->x]->shortestDistance) {                    
                     queue *temp = heapQueue[currentIndex];
 
@@ -261,8 +267,8 @@ int main() {
                     rightChild = currentIndex * 2 + 2;
                 }
             }
-            free(heapQueue);
 
+            // Outputs the shortest distance
             if (paths[yCordEnd][xCordEnd])
                 printf("%d\n", paths[yCordEnd][xCordEnd]->shortestDistance);
             else
@@ -282,6 +288,7 @@ int main() {
 
             if (paths) { free(paths); }
             if (visited) { free(visited); }
+            if (heapQueue) { free(heapQueue); }
         }
     }
 
@@ -291,26 +298,22 @@ int main() {
     for (int index = 0; index < yLen; index++) { free(field[index]); }
     free(field);
 
-    // Node field free
+    // Neighbors field free
     for (int yAxis = 0; yAxis < yLen; yAxis++) {
         for (int xAxis = 0; xAxis < xLen; xAxis++) {
             if (!neighborsField[yAxis][xAxis]) { continue; }
-
             node *currentNode = neighborsField[yAxis][xAxis];
-            node *temp;
 
             while (currentNode->next) {
-                temp = currentNode;
+                node *temp = currentNode;
                 currentNode = currentNode->next;
                 free(temp);
             }
 
             free(currentNode);
         }
-
         free(neighborsField[yAxis]);
     }
-
     free(neighborsField);
 
     return 0;
