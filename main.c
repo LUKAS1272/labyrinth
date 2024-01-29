@@ -48,12 +48,12 @@ typedef struct path {
     struct path* from;
 } path;
 
-path* CreatePath(int yIndex, int xIndex) {
+path* CreatePath(int yIndex, int xIndex, int distance) {
     path *result = malloc(sizeof(path));
 
     result->y = yIndex;
     result->x = xIndex;
-    result->shortestDistance = 2147483647; // Maximum value, an int can store - "infinity" 
+    result->shortestDistance = distance; 
     result->from = NULL;
 
     return result;
@@ -182,8 +182,7 @@ int main() {
                 }
             }
 
-            paths[yCordStart][xCordStart] = CreatePath(yCordStart, xCordStart); // Creates starting tile path
-            paths[yCordStart][xCordStart]->shortestDistance = 0;
+            paths[yCordStart][xCordStart] = CreatePath(yCordStart, xCordStart, 0); // Creates starting tile path
             visited[yCordStart][xCordStart] = 1; // Sets starting cord to visited, so it doesn't get staged by queue
             heapQueue[0] = CreateQueue(yCordStart, xCordStart, 0);
 
@@ -202,9 +201,8 @@ int main() {
                         heapQueue[queueLength] = CreateQueue(currentNeighbor->y, currentNeighbor->x, currentNeighbor->distance);
                         visited[currentNeighbor->y][currentNeighbor->x] = 1;
 
-                        // If the path doesn't exist, create it
-                        if (!paths[currentNeighbor->y][currentNeighbor->x])
-                            paths[currentNeighbor->y][currentNeighbor->x] = CreatePath(currentNeighbor->y, currentNeighbor->x);
+                        // Creates path and sets its shortestDistance
+                        paths[currentNeighbor->y][currentNeighbor->x] = CreatePath(currentNeighbor->y, currentNeighbor->x, paths[heapQueue[0]->y][heapQueue[0]->x]->shortestDistance + currentNeighbor->distance);
                         
                         // Bubbles up to prevent min heap value violations
                         int currentIndex = queueLength;
@@ -216,13 +214,6 @@ int main() {
                             
                             currentIndex = currentParent;
                             currentParent = (currentIndex + 1) / 2;
-                        }
-
-                        // If current neighbor shortest distance is grater than the sum of current queue shortest distance and the distance from queue to the neighbor
-                        if (paths[currentNeighbor->y][currentNeighbor->x]->shortestDistance > paths[heapQueue[0]->y][heapQueue[0]->x]->shortestDistance + currentNeighbor->distance) {
-                            // Update it
-                            paths[currentNeighbor->y][currentNeighbor->x]->shortestDistance = paths[heapQueue[0]->y][heapQueue[0]->x]->shortestDistance + currentNeighbor->distance;
-                            paths[currentNeighbor->y][currentNeighbor->x]->from = paths[heapQueue[0]->y][heapQueue[0]->x];
                         }
 
                         queueLength++;
