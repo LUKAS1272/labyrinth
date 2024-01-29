@@ -26,7 +26,7 @@ node* CreateNode(int yIndex, int xIndex, int nodeDistance) {
 typedef struct queue {
     int y;
     int x;
-    int shortestDistance;
+    int distance;
 } queue;
 
 queue* CreateQueue(int yIndex, int xIndex, int nodeDistance) {
@@ -34,7 +34,7 @@ queue* CreateQueue(int yIndex, int xIndex, int nodeDistance) {
 
     result->y = yIndex;
     result->x = xIndex;
-    result->shortestDistance = nodeDistance;
+    result->distance = nodeDistance;
 
     return result;
 }
@@ -69,7 +69,7 @@ void addNeighbor(node **target, int neighborY, int neighborX, char pathType) {
         distance = 1;
         wasSet = 1;
     } else if (pathType == 'f') {
-        distance = 5;
+        distance = 4;
         wasSet = 1;
     }
     
@@ -80,9 +80,9 @@ void addNeighbor(node **target, int neighborY, int neighborX, char pathType) {
     }
 }
 
-int valueOf(queue *item) {
-    if (item) {
-        return item->shortestDistance;
+int valueOf(queue *node, path ***targetPath) {
+    if (node) {
+        return targetPath[node->y][node->x]->shortestDistance;
     } else {
         return -1;
     }
@@ -190,9 +190,11 @@ int main() {
 
         
             while (heapQueue[0]) { // While there are items in queue
-                printf("iteration\n");
+                // printf("iteration\n");
                 node *currentNeighbor = neighborsField[heapQueue[0]->y][heapQueue[0]->x];
-
+                // visited[heapQueue[0]->y][heapQueue[0]->x] = 1; // CHECK WHETER TO MOVE SOMEWHERE ELSE
+                
+                // printf("Processing [%d, %d]\n", heapQueue[0]->y, heapQueue[0]->x);
                 while (currentNeighbor) { // While there are more neighbors
                     // Enqueue
                     if (visited[currentNeighbor->y][currentNeighbor->x] != 1) { // If the tile hasn't been visited / enqueued yet
@@ -201,16 +203,21 @@ int main() {
                             heapQueue = realloc(heapQueue, queueAlloced * sizeof(queue *));
                         }
 
+                        // printf("Added to queue [%d, %d]\n", currentNeighbor->y, currentNeighbor->x);
                         heapQueue[queueLength] = CreateQueue(currentNeighbor->y, currentNeighbor->x, currentNeighbor->distance);
-                        printf("added [%d, %d] to queue end - %d\n", currentNeighbor->y, currentNeighbor->x, queueLength + 1);
-                        // printf("current neighbor distance - %d\n", currentNeighbor->distance);
                         visited[currentNeighbor->y][currentNeighbor->x] = 1; // CHECK WHETER TO MOVE SOMEWHERE ELSE
 
                         // Bubbles up to prevent value violations
                         int currentIndex = queueLength;
                         int currentParent = (currentIndex + 1) / 2;
-                        while (currentParent >= 0 && heapQueue[currentParent]->shortestDistance > heapQueue[currentIndex]->shortestDistance) {
-                            printf("bubble up\n");
+
+                        // If the path doesn't exist, create it
+                        if (!paths[currentNeighbor->y][currentNeighbor->x])
+                            paths[currentNeighbor->y][currentNeighbor->x] = CreatePath(currentNeighbor->y, currentNeighbor->x);
+                        while (currentParent >= 0 && paths[heapQueue[currentParent]->y][heapQueue[currentParent]->x]->shortestDistance > paths[heapQueue[currentIndex]->y][heapQueue[currentIndex]->x]->shortestDistance) {
+                            // if (currentIndex  { printf("is 0\n"); }
+                            
+                            // printf("bubble up is %d, %d\n", currentIndex, currentParent);
                             queue *temp = heapQueue[currentParent];
                             heapQueue[currentParent] = heapQueue[currentIndex];
                             heapQueue[currentIndex] = temp;
@@ -219,22 +226,29 @@ int main() {
                             currentParent = (currentIndex + 1) / 2;
                         }
 
-                        // If the path doesn't exist, create it
-                        if (!paths[currentNeighbor->y][currentNeighbor->x])
-                            paths[currentNeighbor->y][currentNeighbor->x] = CreatePath(currentNeighbor->y, currentNeighbor->x);
-
                         // If current neighbor shortest distance is grater than the sum of current queue shortest distance and the distance from queue to the neighbor
                         if (paths[currentNeighbor->y][currentNeighbor->x]->shortestDistance > paths[heapQueue[0]->y][heapQueue[0]->x]->shortestDistance + currentNeighbor->distance) {
                             // Update it
+                            // printf("[%d, %d] shortestDistance was updated to %d from %d\n", currentNeighbor->y, currentNeighbor->x, paths[heapQueue[0]->y][heapQueue[0]->x]->shortestDistance + currentNeighbor->distance, paths[currentNeighbor->y][currentNeighbor->x]->shortestDistance);
+
+                            // if (paths[currentNeighbor->y][currentNeighbor->x]->shortestDistance != 2147483647) { printf("changed [%d, %d] from %d to %d\n", currentNeighbor->y, currentNeighbor->x, paths[currentNeighbor->y][currentNeighbor->x]->shortestDistance, paths[heapQueue[0]->y][heapQueue[0]->x]->shortestDistance + currentNeighbor->distance); } 
                             paths[currentNeighbor->y][currentNeighbor->x]->shortestDistance = paths[heapQueue[0]->y][heapQueue[0]->x]->shortestDistance + currentNeighbor->distance;
                             paths[currentNeighbor->y][currentNeighbor->x]->from = paths[heapQueue[0]->y][heapQueue[0]->x];
                         }
+
+                        // printf("Queue bubbled: ");
+                        // for (int i = 0; i <= queueLength; i++) {
+                        //     printf("[%d, %d](%d) ", heapQueue[i]->y, heapQueue[i]->x, paths[heapQueue[i]->y][heapQueue[i]->x]->shortestDistance);
+                        // }
+                        // printf("\n"); 
 
                         queueLength++;
                     }
 
                     currentNeighbor = currentNeighbor->next; // Passes to the next neighbor
+                    // printf("queue length: %d\n", queueLength);
                 }
+                // printf("\n");
                 
                 // Swaps first node with last one
                 queue *temp = heapQueue[0];
@@ -242,52 +256,59 @@ int main() {
                 heapQueue[queueLength - 1] = temp;
 
                 // Deletes last node
+                free(heapQueue[queueLength - 1]);
                 heapQueue[--queueLength] = NULL;
 
-                // // Bubble down
-                // int currentIndex = 0, leftChild = 1, rightChild = 2;;
-                // // add checking whether the nodes exist before looking for its value
-                // while (currentIndex < queueLength && valueOf(heapQueue[currentIndex]) > valueOf(heapQueue[leftChild]) || valueOf(heapQueue[currentIndex]) > valueOf(heapQueue[rightChild])) {
-                //     printf("bubble down\n");
-                //     printf("%d %d\n", heapQueue[currentIndex]->shortestDistance, heapQueue[leftChild]->shortestDistance);
-                //     queue *temp = heapQueue[currentIndex];
+                // Bubble down
+                int currentIndex = 0, leftChild = 1, rightChild = 2;
+                // add checking whether the nodes exist before looking for its value
+                while (leftChild < queueLength && paths[heapQueue[currentIndex]->y][heapQueue[currentIndex]->x]->shortestDistance > paths[heapQueue[leftChild]->y][heapQueue[leftChild]->x]->shortestDistance || rightChild < queueLength && paths[heapQueue[currentIndex]->y][heapQueue[currentIndex]->x]->shortestDistance > paths[heapQueue[rightChild]->y][heapQueue[rightChild]->x]->shortestDistance) {                    
+                    // printf("bubble down\n");
+                    // printf("%d %d\n", heapQueue[currentIndex]->shortestDistance, heapQueue[leftChild]->shortestDistance);
+                    queue *temp = heapQueue[currentIndex];
 
-                //     // if node has both children
-                //     // if node has only left child
-                //     if (heapQueue[rightChild]) { // If node has both children (there is right child)
-                //         if (valueOf(heapQueue[rightChild]) > valueOf(heapQueue[leftChild])) {
+                    if (heapQueue[rightChild] && valueOf(heapQueue[rightChild], paths) < valueOf(heapQueue[leftChild], paths)) { // If node has both children (there is right child)
+                        heapQueue[currentIndex] = heapQueue[rightChild];
+                        heapQueue[rightChild] = temp;
+                        currentIndex = rightChild;
+                        // printf("swap!\n");
+                    } else { // If node has only left child
+                        heapQueue[currentIndex] = heapQueue[leftChild];
+                        heapQueue[leftChild] = temp;
+                        currentIndex = leftChild;
+                        // printf("swap2 %d, %d!\n", valueOf(heapQueue[leftChild], paths), valueOf(heapQueue[rightChild], paths));
+                    }
 
-                //         } else if (valueOf(heapQueue[leftChild]) > valueOf(heapQueue[rightChild])) {
-
-                //         }
-                //     } else if () { // If node has only left child
-                //         heapQueue[currentIndex] = heapQueue[leftChild];
-                //         heapQueue[currentIndex * 2 + 1] = temp;
-                //         currentIndex = currentIndex * 2 + 1;
-                //     }
-
-                //     if (heapQueue[leftChild] < heapQueue[rightChild]) { // Swaps parent with left child
-                //         heapQueue[currentIndex] = heapQueue[leftChild];
-                //         heapQueue[currentIndex * 2 + 1] = temp;
-                //         currentIndex = currentIndex * 2 + 1;
-                //     } else { // Swaps parent with right child
-                //         heapQueue[currentIndex] = heapQueue[rightChild];
-                //         heapQueue[rightChild] = temp;
-                //         currentIndex = currentIndex * 2 + 2;
-                //     }
-                // }
+                    leftChild = currentIndex * 2 + 1;
+                    rightChild = currentIndex * 2 + 2;
+                }
             }
+            free(heapQueue);
 
             // Backtrack
             int distance = 0;
             path *currentPath = paths[yCordEnd][xCordEnd];
             while (currentPath != paths[yCordStart][xCordStart]) {
                 if (currentPath == NULL) { distance = -1; break; }
+                field[currentPath->y][currentPath->x] = 'x';
                 currentPath = currentPath->from;
                 distance++;
             }
 
-            printf("%d\n", distance);
+            // field[yCordStart][xCordStart] = 'S';
+            // field[yCordEnd][xCordEnd] = 'C';
+            
+            // for (int y = 0; y < yLen; y++) {
+            //     for (int x = 0; x < xLen; x++) {
+            //         printf("%c", field[y][x]);
+            //     }
+            //     printf("\n");
+            // }
+
+            if (paths[yCordEnd][xCordEnd])
+                printf("%d\n", paths[yCordEnd][xCordEnd]->shortestDistance);
+            else
+                printf("-1\n");
 
             // Frees the path
             for (int y = 0; y < yLen; y++) {
