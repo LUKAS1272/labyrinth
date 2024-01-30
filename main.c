@@ -185,8 +185,8 @@ int main() {
             paths[yCordStart][xCordStart] = CreatePath(yCordStart, xCordStart, 0); // Creates starting tile path
             visited[yCordStart][xCordStart] = 1; // Sets starting cord to visited, so it doesn't get staged by queue
             heapQueue[0] = CreateQueue(yCordStart, xCordStart, 0);
+      
 
-        
             while (heapQueue[0]) { // While there are items in queue
                 node *currentNeighbor = neighborsField[heapQueue[0]->y][heapQueue[0]->x];
                 
@@ -203,17 +203,17 @@ int main() {
 
                         // Creates path and sets its shortestDistance
                         paths[currentNeighbor->y][currentNeighbor->x] = CreatePath(currentNeighbor->y, currentNeighbor->x, paths[heapQueue[0]->y][heapQueue[0]->x]->shortestDistance + currentNeighbor->distance);
-                        
+
                         // Bubbles up to prevent min heap value violations
                         int currentIndex = queueLength;
-                        int currentParent = (currentIndex + 1) / 2;
+                        int currentParent = (currentIndex - 1) / 2;
                         while (currentParent >= 0 && paths[heapQueue[currentParent]->y][heapQueue[currentParent]->x]->shortestDistance > paths[heapQueue[currentIndex]->y][heapQueue[currentIndex]->x]->shortestDistance) {
                             queue *temp = heapQueue[currentParent];
                             heapQueue[currentParent] = heapQueue[currentIndex];
                             heapQueue[currentIndex] = temp;
                             
                             currentIndex = currentParent;
-                            currentParent = (currentIndex + 1) / 2;
+                            currentParent = (currentIndex - 1) / 2;
                         }
 
                         queueLength++;
