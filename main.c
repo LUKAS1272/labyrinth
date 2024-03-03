@@ -90,6 +90,10 @@ int valueOf(queue *node, path ***targetPath) {
 
 
 int main() {
+    // 0 - Only distance solution will be showing
+    // 1 - UI solution will be shown as well
+    int showSolution = 1;
+
     char currentChar;
     char **field;
     int xIndex = 0, xLen = 1, yIndex = 0, yLen = 1;
@@ -159,6 +163,19 @@ int main() {
     // Second phase
     int xCordStart, xCordEnd, yCordStart, yCordEnd;
     while (scanf("%d %d %d %d", &yCordStart, &xCordStart, &yCordEnd, &xCordEnd) != EOF) {
+        char **solutionField;
+        if (showSolution) {
+            // Allocates solutionField
+            solutionField = malloc(yLen * sizeof(char **));
+            for (int i = 0; i < yLen; i++)
+                solutionField[i] = malloc(xLen * sizeof(char *));
+
+            // Copies data from field to solutionField
+            for (int y = 0; y < yLen; y++)
+                for (int x = 0; x < xLen; x++)
+                    solutionField[y][x] = field[y][x];
+        }
+
         if (field[yCordStart][xCordStart] == '#' || field[yCordEnd][xCordEnd] == '#') { // Coordinates do not exist - invalid path
             printf("-1\n");
         } else if (yCordStart == yCordEnd && xCordStart == xCordEnd) { // Coordinates are the same - no need to move
@@ -203,6 +220,10 @@ int main() {
 
                         // Creates path and sets its shortestDistance
                         paths[currentNeighbor->y][currentNeighbor->x] = CreatePath(currentNeighbor->y, currentNeighbor->x, paths[heapQueue[0]->y][heapQueue[0]->x]->shortestDistance + currentNeighbor->distance);
+
+                        if (showSolution) {
+                            paths[currentNeighbor->y][currentNeighbor->x]->from = paths[heapQueue[0]->y][heapQueue[0]->x];
+                        }
 
                         // Bubbles up to prevent min heap value violations
                         int currentIndex = queueLength;
@@ -264,6 +285,37 @@ int main() {
                 printf("%d\n", paths[yCordEnd][xCordEnd]->shortestDistance);
             else
                 printf("-1\n");
+
+            if (showSolution) {    
+                path* currentPath = paths[yCordEnd][xCordEnd];
+                while (currentPath->from) {
+                    solutionField[currentPath->y][currentPath->x] = 'x';
+                    currentPath = currentPath->from;
+                }
+                solutionField[yCordStart][xCordStart] = 'S';
+                solutionField[yCordEnd][xCordEnd] = 'E';
+
+                // Prints out solutionField
+                for (int y = 0; y < yLen; y++) {
+                    for (int x = 0; x < xLen; x++) {
+                        if (solutionField[y][x] == 'x') {
+                            printf("\033[1;3;40m%c\033[0m", solutionField[y][x]);
+                        } else if (solutionField[y][x] == 'S') {
+                            printf("\033[1;3;40;33m%c\033[0m", solutionField[y][x]);
+                        } else if (solutionField[y][x] == 'E') {
+                            printf("\033[1;3;40;32m%c\033[0m", solutionField[y][x]);
+                        } else {
+                            printf("\033[2;40;37m%c\033[0m", solutionField[y][x]);
+                        }
+                    }
+
+                    printf("\n");    
+                }
+                printf("\n");
+
+                for (int i = 0; i < yLen; i++) { free(solutionField[i]); }
+                free(solutionField);
+            }
 
             // Frees the path
             for (int y = 0; y < yLen; y++) {
