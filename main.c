@@ -176,9 +176,9 @@ int main() {
                     solutionField[y][x] = field[y][x];
         }
 
-        if (field[yCordStart][xCordStart] == '#' || field[yCordEnd][xCordEnd] == '#') { // Coordinates do not exist - invalid path
-            printf("-1\n");
-        } else if (yCordStart == yCordEnd && xCordStart == xCordEnd) { // Coordinates are the same - no need to move
+        if (field[yCordStart][xCordStart] != '.' || field[yCordEnd][xCordEnd] != '.') { // Coordinates do not exist - invalid path
+            printf("-1 - invalid path, check input file\n");
+        } else if (yCordStart == yCordEnd && xCordStart == xCordEnd && !showSolution) { // Coordinates are the same - no need to move
             printf("0\n");
         } else {
             // Creates a queue
@@ -286,9 +286,9 @@ int main() {
             else
                 printf("-1\n");
 
-            if (showSolution) {    
+            if (showSolution) {
                 path* currentPath = paths[yCordEnd][xCordEnd];
-                while (currentPath->from) {
+                while (currentPath && currentPath->from) {
                     solutionField[currentPath->y][currentPath->x] = 'x';
                     currentPath = currentPath->from;
                 }
@@ -299,7 +299,7 @@ int main() {
                 for (int y = 0; y < yLen; y++) {
                     for (int x = 0; x < xLen; x++) {
                         if (solutionField[y][x] == 'x') {
-                            printf("\033[1;3;40m%c\033[0m", solutionField[y][x]);
+                            printf("\033[1;3;40m%c\033[0m", field[y][x]);
                         } else if (solutionField[y][x] == 'S') {
                             printf("\033[1;3;40;33m%c\033[0m", solutionField[y][x]);
                         } else if (solutionField[y][x] == 'E') {
